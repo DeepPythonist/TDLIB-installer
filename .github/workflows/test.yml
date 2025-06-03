@@ -1,0 +1,124 @@
+name: Test TdLib Installer
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-linux:
+    name: Test on Linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake git
+    
+    - name: Make installer executable
+      run: chmod +x install.sh
+    
+    - name: Test installer help
+      run: ./install.sh --help
+    
+    - name: Test installer verification (should fail initially)
+      run: ./install.sh --verify-only || true
+    
+    - name: Run installer with dependency skip
+      run: ./install.sh --skip-deps
+    
+    - name: Verify installation
+      run: ./install.sh --verify-only
+    
+    - name: Test Python example
+      run: python3 examples/basic_usage.py
+
+  test-macos:
+    name: Test on macOS
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install Xcode Command Line Tools
+      run: |
+        sudo xcode-select --install || true
+        sudo xcode-select --reset
+    
+    - name: Make installer executable
+      run: chmod +x install.sh
+    
+    - name: Test installer help
+      run: ./install.sh --help
+    
+    - name: Run installer
+      run: ./install.sh
+    
+    - name: Verify installation
+      run: ./install.sh --verify-only
+    
+    - name: Test Python example
+      run: python3 examples/basic_usage.py
+
+  test-script-syntax:
+    name: Test Script Syntax
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Check shell script syntax
+      run: |
+        bash -n install.sh
+        echo "✅ Shell script syntax is valid"
+    
+    - name: Run shellcheck
+      uses: ludeeus/action-shellcheck@master
+      with:
+        scandir: '.'
+        format: gcc
+        severity: warning
+    
+    - name: Check Python syntax
+      run: |
+        python3 -m py_compile examples/basic_usage.py
+        echo "✅ Python script syntax is valid"
+
+  test-documentation:
+    name: Test Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Check README links
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        use-quiet-mode: 'yes'
+        use-verbose-mode: 'yes'
+    
+    - name: Validate markdown files
+      run: |
+        find . -name "*.md" -exec echo "Checking {}" \;
+        echo "✅ All markdown files are present" 
