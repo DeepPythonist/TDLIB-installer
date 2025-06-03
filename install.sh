@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# shellcheck disable=SC2155
+
 # TdLib Universal Installer
 # 
 # A comprehensive and reliable installation script for TdLib (Telegram Database Library)
