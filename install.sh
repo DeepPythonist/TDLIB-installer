@@ -59,7 +59,9 @@ error_exit() {
 detect_platform() {
     local os_name
     local arch
+    # shellcheck disable=SC2155
     os_name=$(uname -s)
+    # shellcheck disable=SC2155
     arch=$(uname -m)
     
     case "$os_name" in
@@ -344,6 +346,7 @@ build_tdlib() {
         macos)
             # Use the system SDK for macOS
             local sdk_path
+            # shellcheck disable=SC2155
             sdk_path=$(xcrun --show-sdk-path 2>/dev/null || echo "")
             if [ -n "$sdk_path" ]; then
                 cmake_args="$cmake_args -DCMAKE_OSX_SYSROOT=$sdk_path"
@@ -362,6 +365,7 @@ build_tdlib() {
     # Build the tdjson target
     log_info "Building tdjson library..."
     local cpu_count
+    # shellcheck disable=SC2155
     cpu_count=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo "4")
     make tdjson -j"$cpu_count"
     
@@ -391,8 +395,10 @@ verify_installation() {
         local file_size
         if command -v stat >/dev/null 2>&1; then
             if [[ "$PLATFORM" == "macos" ]]; then
+                # shellcheck disable=SC2155
                 file_size=$(stat -f%z "$found_lib" 2>/dev/null || echo "unknown")
             else
+                # shellcheck disable=SC2155
                 file_size=$(stat -c%s "$found_lib" 2>/dev/null || echo "unknown")
             fi
         else
@@ -403,6 +409,7 @@ verify_installation() {
         # Check if it's a valid library file
         if command -v file >/dev/null 2>&1; then
             local file_type
+            # shellcheck disable=SC2155
             file_type=$(file "$found_lib")
             log_info "File type: $file_type"
         fi
