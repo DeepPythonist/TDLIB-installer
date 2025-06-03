@@ -92,11 +92,10 @@ jobs:
         bash -n install.sh
         echo "✅ Shell script syntax is valid"
     
-    - name: Run shellcheck
+    - name: Run shellcheck (ignore SC2155)
       run: |
-        # Check shell script syntax manually with more lenient settings
-        shellcheck --severity=error install.sh || echo "⚠️  Shellcheck warnings found but not blocking"
-        echo "✅ Shellcheck completed"
+        shellcheck --exclude=SC2155 install.sh
+        echo "✅ Shellcheck completed (SC2155 warnings ignored)"
     
     - name: Check Python syntax
       run: |
