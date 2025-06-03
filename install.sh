@@ -55,10 +55,12 @@ error_exit() {
     exit 1
 }
 
-# Platform detection
+# Function to detect platform
 detect_platform() {
-    local os_name=$(uname -s)
-    local arch=$(uname -m)
+    local os_name
+    local arch
+    os_name=$(uname -s)
+    arch=$(uname -m)
     
     case "$os_name" in
         Linux*)
@@ -72,33 +74,30 @@ detect_platform() {
             else
                 DISTRO="unknown"
             fi
+            case "$arch" in
+                x86_64) ARCH="x64" ;;
+                aarch64|arm64) ARCH="arm64" ;;
+                *) ARCH="$arch" ;;
+            esac
             ;;
         Darwin*)
             PLATFORM="macos"
             DISTRO="macos"
+            case "$arch" in
+                x86_64) ARCH="x64" ;;
+                arm64) ARCH="arm64" ;;
+                *) ARCH="$arch" ;;
+            esac
             ;;
         CYGWIN*|MINGW*|MSYS*)
             PLATFORM="windows"
             DISTRO="windows"
-            ;;
-        *)
-            error_exit "Unsupported operating system: $os_name"
-            ;;
-    esac
-    
-    case "$arch" in
-        x86_64|amd64)
             ARCH="x64"
             ;;
-        arm64|aarch64)
-            ARCH="arm64"
-            ;;
-        armv7l)
-            ARCH="arm"
-            ;;
         *)
-            log_warning "Unknown architecture: $arch, assuming x64"
-            ARCH="x64"
+            PLATFORM="unknown"
+            DISTRO="unknown"
+            ARCH="unknown"
             ;;
     esac
     
@@ -344,7 +343,8 @@ build_tdlib() {
     case "$PLATFORM" in
         macos)
             # Use the system SDK for macOS
-            local sdk_path=$(xcrun --show-sdk-path 2>/dev/null || echo "")
+            local sdk_path
+            sdk_path=$(xcrun --show-sdk-path 2>/dev/null || echo "")
             if [ -n "$sdk_path" ]; then
                 cmake_args="$cmake_args -DCMAKE_OSX_SYSROOT=$sdk_path"
             fi
@@ -356,11 +356,13 @@ build_tdlib() {
     esac
     
     log_info "Configuring CMake with: $cmake_args"
+    # shellcheck disable=SC2086
     cmake $cmake_args ..
     
     # Build the tdjson target
     log_info "Building tdjson library..."
-    local cpu_count=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo "4")
+    local cpu_count
+    cpu_count=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo "4")
     make tdjson -j"$cpu_count"
     
     cd ../..
@@ -386,12 +388,22 @@ verify_installation() {
         log_success "TdLib library found: $found_lib"
         
         # Get file size
-        local file_size=$(ls -lh "$found_lib" | awk '{print $5}')
-        log_info "Library size: $file_size"
+        local file_size
+        if command -v stat >/dev/null 2>&1; then
+            if [[ "$PLATFORM" == "macos" ]]; then
+                file_size=$(stat -f%z "$found_lib" 2>/dev/null || echo "unknown")
+            else
+                file_size=$(stat -c%s "$found_lib" 2>/dev/null || echo "unknown")
+            fi
+        else
+            file_size="unknown"
+        fi
+        log_info "Library size: ${file_size}B"
         
         # Check if it's a valid library file
         if command -v file >/dev/null 2>&1; then
-            local file_type=$(file "$found_lib")
+            local file_type
+            file_type=$(file "$found_lib")
             log_info "File type: $file_type"
         fi
         
